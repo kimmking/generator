@@ -1,17 +1,17 @@
-/*
- *  Copyright 2005 The Apache Software Foundation
+/**
+ *    Copyright 2006-2017 the original author or authors.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *       http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 package org.mybatis.generator.internal.util;
 
@@ -29,28 +29,25 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.config.Context;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.config.TableConfiguration;
 
 /**
  * @author Jeff Butler
  */
 public class JavaBeansUtil {
 
-    /**
-	 *  
-	 */
     private JavaBeansUtil() {
         super();
     }
 
     /**
-     * JavaBeans rules:
-     * 
-     * eMail > geteMail() firstName > getFirstName() URL > getURL() XAxis >
-     * getXAxis() a > getA() B > invalid - this method assumes that this is not
-     * the case. Call getValidPropertyName first. Yaxis > invalid - this method
-     * assumes that this is not the case. Call getValidPropertyName first.
+     * Computes a getter method name.  Warning - does not check to see that the property is a valid
+     * property.  Call getValidPropertyName first.
      * 
      * @param property
+     *            the property
+     * @param fullyQualifiedJavaType
+     *            the fully qualified java type
      * @return the getter method name
      */
     public static String getGetterMethodName(String property,
@@ -75,14 +72,11 @@ public class JavaBeansUtil {
     }
 
     /**
-     * JavaBeans rules:
-     * 
-     * eMail > seteMail() firstName > setFirstName() URL > setURL() XAxis >
-     * setXAxis() a > setA() B > invalid - this method assumes that this is not
-     * the case. Call getValidPropertyName first. Yaxis > invalid - this method
-     * assumes that this is not the case. Call getValidPropertyName first.
-     * 
+     * Computes a setter method name.  Warning - does not check to see that the property is a valid
+     * property.  Call getValidPropertyName first.
+     *
      * @param property
+     *            the property
      * @return the setter method name
      */
     public static String getSetterMethodName(String property) {
@@ -141,18 +135,31 @@ public class JavaBeansUtil {
     }
 
     /**
-     * This method ensures that the specified input string is a valid Java
-     * property name. The rules are as follows:
+     * This method ensures that the specified input string is a valid Java property name.
      * 
-     * 1. If the first character is lower case, then OK 2. If the first two
-     * characters are upper case, then OK 3. If the first character is upper
-     * case, and the second character is lower case, then the first character
-     * should be made lower case
+     * <p>The rules are as follows:
      * 
-     * eMail > eMail firstName > firstName URL > URL XAxis > XAxis a > a B > b
-     * Yaxis > yaxis
+     * <ol>
+     *   <li>If the first character is lower case, then OK</li>
+     *   <li>If the first two characters are upper case, then OK</li>
+     *   <li>If the first character is upper case, and the second character is lower case, then the first character should be made
+     *       lower case</li>
+     * </ol>
      * 
+     * <p>For example:
+     * 
+     * <ul>
+     *   <li>eMail &gt; eMail</li>
+     *   <li>firstName &gt; firstName</li>
+     *   <li>URL &gt; URL</li>
+     *   <li>XAxis &gt; XAxis</li>
+     *   <li>a &gt; a</li>
+     *   <li>B &gt; b</li>
+     *   <li>Yaxis &gt; yaxis</li>
+     * </ul>
+     *
      * @param inputString
+     *            the input string
      * @return the valid property name
      */
     public static String getValidPropertyName(String inputString) {
@@ -230,7 +237,7 @@ public class JavaBeansUtil {
                 introspectedTable, introspectedColumn);
 
         StringBuilder sb = new StringBuilder();
-        if (isTrimStringsEnabled(context) && introspectedColumn.isStringColumn()) {
+        if (introspectedColumn.isStringColumn() && isTrimStringsEnabled(introspectedColumn)) {
             sb.append("this."); //$NON-NLS-1$
             sb.append(property);
             sb.append(" = "); //$NON-NLS-1$
@@ -259,4 +266,20 @@ public class JavaBeansUtil {
         return rc;
     }
 
+    private static boolean isTrimStringsEnabled(IntrospectedTable table) {
+        TableConfiguration tableConfiguration = table.getTableConfiguration();
+        String trimSpaces = tableConfiguration.getProperties().getProperty(PropertyRegistry.MODEL_GENERATOR_TRIM_STRINGS);
+        if (trimSpaces != null) {
+            return isTrue(trimSpaces);
+        }
+        return isTrimStringsEnabled(table.getContext());
+    }
+
+    private static boolean isTrimStringsEnabled(IntrospectedColumn column) {
+        String trimSpaces = column.getProperties().getProperty(PropertyRegistry.MODEL_GENERATOR_TRIM_STRINGS);
+        if (trimSpaces != null) {
+            return isTrue(trimSpaces);
+        }
+        return isTrimStringsEnabled(column.getIntrospectedTable());
+    }
 }
